@@ -196,24 +196,6 @@ var printDTOs = function(dtos) {
 	});
 };
 
-var _initDirectories = function() {
-	var directories = ['controllers', 'services', 'validators', 'dtos', 'routes', 'assets', 'api'];
-	for(var i = 0; i < directories.length; i++) {
-		var directory = directories[i];
-		if(fs.existsSync(process.cwd() + '/' + directory) === false) {
-			fs.mkdirSync(process.cwd() + '/' + directory)
-		}
-	}
-};
-
-var _initMain = function() {
-	if(fs.existsSync(process.cwd() + '/node_modules/snooze/tpl/main.js.tpl')) {
-		_fatal('Snooze not found in node_modules. Be sure to run npm `install snooze -g`')
-		var main = fs.readFileSync(process.cwd() + '/node_modules/snooze/tpl/main.js.tpl');
-		console.log(main);
-	}
-};
-
 var methods = {
 	'controllers': function() {
 		printControllers(snooze.module(modname).getControllers());
