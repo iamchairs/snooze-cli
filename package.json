@@ -1,7 +1,7 @@
 {
   "name": "snooze-cli",
   "description": "Snooze Command Line Interface",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "preferGlobal": true,
   "author": {
     "name": "Micah Williamson",
@@ -22,7 +22,8 @@
   "homepage": "http://snoozejs.org/",
   "dependencies": {
     "colors": "^0.6.2",
-    "lodash": "^2.4.1"
+    "lodash": "^2.4.1",
+    "commander": "^2.2.0"
   },
   "keywords": [
     "snooze",
