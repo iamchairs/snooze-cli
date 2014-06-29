@@ -37,6 +37,19 @@ var _normalizeOptions = function(options) {
 			var matches = re.exec(_option.flags);
 			if(matches !== null) {
 				var prop = matches[1];
+			} else {
+				parts = _option.flags.split(', ');
+				for(var k = 0; k < parts.length; k++) {
+					var part = parts[k];
+					if(part.substr(0, 2) === '--') {
+						var prop = part.substr(2);
+					} else {
+						var prop = part.substr(1).toUpperCase;
+					}
+				}
+			}
+
+			if(parent[prop] !== undefined) {
 				normalizedObj[prop] = parent[prop];
 			}
 		}
@@ -308,6 +321,68 @@ var generateAPI = function(options) {
 	fs.writeFileSync(process.cwd() + '/api/' + module + '.api.json', JSON.stringify(api, null, 2));
 };
 
+var sync = function(options) {
+	var module = getRealModule(options.module);
+	var $conn = snooze.module(module).getService('$conn');
+	var force = false;
+
+	var _finish = function() {
+		if($conn !== undefined) {
+			$conn.sync({force: force}).then(function() {
+				console.log('sync finished');
+				process.exit(0);
+			}).error(function() {
+				console.log('sync err');
+				process.exit(0);
+			});
+		} else {
+			snooze.fatal('Fatal Error: $conn does not exist. Was snooze-stdlib included in your project?');
+		}
+	}
+	
+	/*if(options.F === true || options.force === true) {
+		program.prompt('You\'ve chosen to force a sync. This will cause tables defined in DAOs to drop and recreate. This will wipe out the data in them. Are you sure you want to continue? (Y/n) ', function(answer) {
+			if(answer === 'Y') {
+				_finish();
+			} else {
+				console.log('sync aborted');
+				process.exit(0);
+			}
+		});
+	} else {*/
+		_finish();
+	//}
+};
+
+var env = function(options) {
+	var module = getRealModule(options.module);
+	var $conn = snooze.module(module).getService('$conn');
+
+	if($conn !== undefined) {
+		var conf = snooze.getConfig();
+		
+		if(conf.db !== undefined) {
+			for(var connection in conf.db.connections) {
+				var con = conf.db.connections[connection];
+
+				console.log(connection.yellow)
+				console.log('\tengine: ' + con.engine);
+				console.log('\thost: ' + con.host);
+				console.log('\tuser: ' + con.user);
+				console.log('\tdb: ' + con.database);
+				console.log('\n');
+			}
+
+			console.log('Main (default): ' + conf.main);
+			console.log('Dev: ' + conf.dev);
+		} else {
+			snooze.fatal('db not defined in snooze.json');
+		}
+	} else {
+		snooze.fatal('Fatal Error: $conn does not exist. Was snooze-stdlib included in your project?');
+	}
+};
+
 program
 	.version('0.0.3')
 	.option('-m, --module <module>', 'Set the module');
@@ -318,6 +393,7 @@ program
 	.option('-t, --type <type>', 'GET, POST, PUT, DELETE, RESOURCE')
 	.action(function(options) {
 		printRoutes(_normalizeOptions(options));
+		process.exit(0);
 	});
 
 program
@@ -325,6 +401,7 @@ program
 	.description('Lists the controllers in the snooze application, their injectables, and routes that point to them.')
 	.action(function(options) {
 		printControllers(_normalizeOptions(options));
+		process.exit(0);
 	});
 
 program
@@ -332,6 +409,7 @@ program
 	.description('Lists the services in the snooze application and their injectables.')
 	.action(function(options) {
 		printServices(_normalizeOptions(options));
+		process.exit(0);
 	});
 
 program
@@ -339,6 +417,7 @@ program
 	.description('Lists the dtos in the snooze application, their injectables, and properties.')
 	.action(function(options) {
 		printDTOs(_normalizeOptions(options));
+		process.exit(0);
 	});
 
 program
@@ -346,6 +425,7 @@ program
 	.description('Lists the validators in the snooze application and their injectables.')
 	.action(function(options) {
 		printValidators(_normalizeOptions(options));
+		process.exit(0);
 	});
 
 program
@@ -353,9 +433,30 @@ program
 	.description('Generates a [module].api.json API File in the api directory.')
 	.action(function(options) {
 		generateAPI(_normalizeOptions(options));
+		process.exit(0);
+	});
+
+program
+	.command('db')
+	.description('Database management using Sequelize. snooze-stb requiried.')
+	.option('-s, --sync', 'Sync. Synchronize local models to remove database.')
+	.option('-f, --force', 'Forces sync. Warning: This drops tables and recreates them.')
+	.option('-e, --env', 'View Available Environments')
+	.action(function(options) {
+		options = _normalizeOptions(options);
+
+		if(options.sync === true) {
+			sync(options);
+		} else if(options.env === true) {
+			env(options);
+		}
+	});
+
+program
+	.command('*')
+	.action(function(options) {
+		snooze.fatal('Unknown command');
 	});
 
 program
 	.parse(process.argv);
-
-process.exit(0);
