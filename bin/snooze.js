@@ -340,18 +340,12 @@ var sync = function(options) {
 		}
 	}
 	
-	/*if(options.F === true || options.force === true) {
-		program.prompt('You\'ve chosen to force a sync. This will cause tables defined in DAOs to drop and recreate. This will wipe out the data in them. Are you sure you want to continue? (Y/n) ', function(answer) {
-			if(answer === 'Y') {
-				_finish();
-			} else {
-				console.log('sync aborted');
-				process.exit(0);
-			}
-		});
-	} else {*/
-		_finish();
-	//}
+	//TODO Add Prompt Here
+	if(options.F === true || options.force === true) {
+		force = true;
+	}
+
+	_finish();
 };
 
 var env = function(options) {
