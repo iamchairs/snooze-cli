@@ -1,30 +1,35 @@
 #! /usr/bin/env node
 
+var snooze;
 var fs = require('fs');
 var colors = require('colors');
-var snooze = require(process.cwd() + '/node_modules/snooze');
 var _ = require('lodash');
 var program = require('commander');
+var prompt = require('prompt');
 
 var _conf = {};
 var _params = {};
 
-if(snooze.getConfig().main !== undefined) {
-	var main = snooze.getConfig().main;
-	if(fs.existsSync(process.cwd() + '/' + main)) {
-		var hand = console.log;
-		console.log = function(){};
+var readConfig = function() {
+	snooze = require(process.cwd() + '/node_modules/snooze');
 
-		require(process.cwd() + '/' + main);
+	if(snooze.getConfig().main !== undefined) {
+		var main = snooze.getConfig().main;
+		if(fs.existsSync(process.cwd() + '/' + main)) {
+			var hand = console.log;
+			console.log = function(){};
 
-		console.log = hand;
+			require(process.cwd() + '/' + main);
+
+			console.log = hand;
+		} else {
+			snooze.fatal('Fatal Error: ' + main + ' doesn\'t exist');
+		}
+
 	} else {
-		snooze.fatal('Fatal Error: ' + main + ' doesn\'t exist');
+		snooze.fatal('Fatal Error: No main defined in snooze.json');
 	}
-
-} else {
-	snooze.fatal('Fatal Error: No main defined in snooze.json');
-}
+};
 
 var _normalizeOptions = function(options) {
 	var normalizedObj = {};
@@ -377,6 +382,125 @@ var env = function(options) {
 	}
 };
 
+var init = function(options) {
+	prompt.get([
+	{
+		name: 'module',
+		description: 'Module Name',     // Prompt displayed to the user. If not supplied name will be used.
+		type: 'string',                 // Specify the type of input to expect.
+		pattern: /^\w+$/,                  // Regular expression that input must be valid against.
+		message: 'Password must be letters', // Warning message to display if validation fails.
+		default: 'MyApp',             // Default value to use if no value is entered.
+		required: true                        // If true, value entered must be non-empty.
+	}], function(err, result) {
+		var template = {modname: result.module};
+
+		initDirectories();
+		initJSON(template);
+		initMain(template);
+		initRoutes(template);
+	});
+};
+
+var initDirectories = function(options) {
+	var directories = ['controllers', 'services', 'validators', 'dtos', 'daos', 'routes', 'assets', 'api'];
+	for(var i = 0; i < directories.length; i++) {
+		var directory = directories[i];
+		if(fs.existsSync(process.cwd() + '/' + directory) === false) {
+			fs.mkdirSync(process.cwd() + '/' + directory)
+		}
+	}
+};
+
+var initMain = function(template) {
+	var finish = function(template) {
+		if(!fs.existsSync(__dirname + '/../tpl/main.js.tpl')) {
+			_fatal('Couldn\'t find main.js.tpl');
+		} else {
+			var main = fs.readFileSync(__dirname + '/../tpl/main.js.tpl', 'utf8');
+			var compiled = _.template(main, template);
+			fs.writeFileSync(process.cwd() + '/main.js', compiled);
+		}
+	};
+
+	if(template === undefined) {
+		prompt.get([
+		{
+			name: 'module',
+			description: 'Module Name',     // Prompt displayed to the user. If not supplied name will be used.
+			type: 'string',                 // Specify the type of input to expect.
+			pattern: /^\w+$/,                  // Regular expression that input must be valid against.
+			message: 'Password must be letters', // Warning message to display if validation fails.
+			default: 'MyApp',             // Default value to use if no value is entered.
+			required: true                        // If true, value entered must be non-empty.
+		}], function(err, result) {
+			finish({modnam: result.module});
+		});
+	} else {
+		finish(template);
+	}
+};
+
+var initRoutes = function(template) {
+	var finish = function(template) {
+		if(!fs.existsSync(__dirname + '/../tpl/Assets.js.tpl')) {
+			_fatal('Couldn\'t find Assets.js.tpl');
+		} else {
+			var main = fs.readFileSync(__dirname + '/../tpl/Assets.js.tpl', 'utf8');
+			var compiled = _.template(main, template);
+			fs.writeFileSync(process.cwd() + '/routes/Assets.js', compiled);
+		}
+	};
+
+	if(template === undefined) {
+		prompt.get([
+		{
+			name: 'module',
+			description: 'Module Name',     // Prompt displayed to the user. If not supplied name will be used.
+			type: 'string',                 // Specify the type of input to expect.
+			pattern: /^\w+$/,                  // Regular expression that input must be valid against.
+			message: 'Password must be letters', // Warning message to display if validation fails.
+			default: 'MyApp',             // Default value to use if no value is entered.
+			required: true                        // If true, value entered must be non-empty.
+		}], function(err, result) {
+			finish({modnam: result.module});
+		});
+	} else {
+		finish(template);
+	}
+};
+
+var initJSON = function(template) {
+	var finish = function(template) {
+		if(!fs.existsSync(__dirname + '/../tpl/snooze.json.tpl')) {
+			_fatal('Couldn\'t find snooze.json.tpl');
+		} else {
+			var main = fs.readFileSync(__dirname + '/../tpl/snooze.json.tpl', 'utf8');
+			var compiled = _.template(main, template);
+			fs.writeFileSync(process.cwd() + '/snooze.json', compiled);
+		}
+	};
+
+	if(template === undefined) {
+		prompt.get([
+		{
+			name: 'module',
+			description: 'Module Name',     // Prompt displayed to the user. If not supplied name will be used.
+			type: 'string',                 // Specify the type of input to expect.
+			pattern: /^\w+$/,                  // Regular expression that input must be valid against.
+			message: 'Password must be letters', // Warning message to display if validation fails.
+			default: 'MyApp',             // Default value to use if no value is entered.
+			required: true                        // If true, value entered must be non-empty.
+		}], function(err, result) {
+			finish({modnam: result.module});
+		});
+	} else {
+		finish(template);
+	}
+};
+
+
+
 program
 	.version('0.0.3')
 	.option('-m, --module <module>', 'Set the module');
@@ -386,6 +510,7 @@ program
 	.description('Lists the routes in the snooze application.')
 	.option('-t, --type <type>', 'GET, POST, PUT, DELETE, RESOURCE')
 	.action(function(options) {
+		readConfig();
 		printRoutes(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -394,6 +519,7 @@ program
 	.command('controllers')
 	.description('Lists the controllers in the snooze application, their injectables, and routes that point to them.')
 	.action(function(options) {
+		readConfig();
 		printControllers(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -402,6 +528,7 @@ program
 	.command('services')
 	.description('Lists the services in the snooze application and their injectables.')
 	.action(function(options) {
+		readConfig();
 		printServices(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -410,6 +537,7 @@ program
 	.command('dtos')
 	.description('Lists the dtos in the snooze application, their injectables, and properties.')
 	.action(function(options) {
+		readConfig();
 		printDTOs(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -418,6 +546,7 @@ program
 	.command('validators')
 	.description('Lists the validators in the snooze application and their injectables.')
 	.action(function(options) {
+		readConfig();
 		printValidators(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -426,6 +555,7 @@ program
 	.command('api')
 	.description('Generates a [module].api.json API File in the api directory.')
 	.action(function(options) {
+		readConfig();
 		generateAPI(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -437,12 +567,36 @@ program
 	.option('-f, --force', 'Forces sync. Warning: This drops tables and recreates them.')
 	.option('-e, --env', 'View Available Environments')
 	.action(function(options) {
+		readConfig();
 		options = _normalizeOptions(options);
 
 		if(options.sync === true) {
 			sync(options);
 		} else if(options.env === true) {
 			env(options);
+		}
+	});
+
+program
+	.command('init')
+	.description('initializes the current directory with a snooze project including main.js file and snooze.json')
+	.option('-d', '--directories', 'Only initialize directories')
+	.option('-m', '--main', 'Only initialize the main.js file')
+	.option('-j', '--json', 'Only initialize the snooze.json file')
+	.option('-r', '--routes', 'Only initialize routes (default asset routes)')
+	.action(function(options) {
+		options = _normalizeOptions(options);
+
+		if(options.directories === true) {
+			initDirectories(options);
+		} else if(options.main === true) {
+			initMain(options);
+		} else if(options.json === true) {
+			initJSON(options);
+		} else if(options.routes === true) {
+			initRoutes(options);
+		} else {
+			init(options);
 		}
 	});
 

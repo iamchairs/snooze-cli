@@ -1,7 +1,7 @@
 var snooze = require('snooze');
 
 snooze.module('<%= modname %>')
-	.libs(['routes', 'controllers', 'services', 'validators', 'dtos'])
+	.libs(['routes', 'controllers', 'services', 'validators', 'dtos', 'daos'])
 	.setPort(8000);
 
-snooze.module('flint').wakeup();
+snooze.module('<%=modname%>').wakeup();
