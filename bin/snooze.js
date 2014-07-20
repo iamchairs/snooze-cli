@@ -336,8 +336,9 @@ var sync = function(options) {
 			$conn.sync({force: force}).then(function() {
 				console.log('sync finished');
 				process.exit(0);
-			}).error(function() {
+			}).error(function(err) {
 				console.log('sync err');
+				console.log(err);
 				process.exit(0);
 			});
 		} else {
