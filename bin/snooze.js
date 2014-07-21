@@ -10,24 +10,53 @@ var prompt = require('prompt');
 var _conf = {};
 var _params = {};
 
-var readConfig = function() {
+// Loading exceptions
+
+var files = fs.readdirSync(__dirname + '/../lib/exceptions');
+for(var i = 0; i < files.length; i++) {
+	var file = files[i];
+	var nm = file.replace('.js', '');
+
+	eval(nm + " = require(__dirname + '/../lib/exceptions/' + files[i]);");
+}
+
+var loadSnooze = function() {
 	snooze = require(process.cwd() + '/node_modules/snooze');
+};
 
-	if(snooze.getConfig().main !== undefined) {
-		var main = snooze.getConfig().main;
+var start = function(startOptions) {
+	loadSnooze();
+	var config = snooze.getConfig();
+
+	if(config.main !== undefined) {
+		var main = config.main;
 		if(fs.existsSync(process.cwd() + '/' + main)) {
-			var hand = console.log;
-			console.log = function(){};
-
 			require(process.cwd() + '/' + main);
 
-			console.log = hand;
+			if(startOptions === undefined) {
+				startOptions = {
+					silent: false
+				};
+
+				var mode = config.mode;
+				if(mode === undefined) {
+					snooze.fatal(new NoDefaultModeException());
+				} else {
+					startOptions.mode = mode;
+				}
+			}
+		
+			if(snooze.module(config.name).isAwake()) {
+				snooze.fatal(new StartConflictException());
+			} else {
+				snooze.module(config.name).wakeup(startOptions);
+			}
 		} else {
-			snooze.fatal('Fatal Error: ' + main + ' doesn\'t exist');
+			snooze.fatal(new MainNotFoundException(main));
 		}
 
 	} else {
-		snooze.fatal('Fatal Error: No main defined in snooze.json');
+		snooze.fatal(new NoMainDefinedException());
 	}
 };
 
@@ -70,13 +99,13 @@ var getRealModule = function(module) {
 		if(snooze.getConfig().name !== undefined) {
 			return snooze.getConfig().name;
 		} else {
-			snooze.fatal('Fatal Error: no module defined. you can also set "name" in snooze.json to avoid naming it in snooze-cli');
+			snooze.fatal(new NoModuleDefinedException());
 		}
 	} else {
 		if(snooze.moduleExists(module) === true) {
 			return module;
 		} else {
-			snooze.fatal('Fatal Error: module ' + module + ' doesn\'t exist');
+			snooze.fatal(new ModuleNotFoundException());
 		}
 	}
 };
@@ -342,7 +371,7 @@ var sync = function(options) {
 				process.exit(0);
 			});
 		} else {
-			snooze.fatal('Fatal Error: $conn does not exist. Was snooze-stdlib included in your project?');
+			snooze.fatal(new SequelizeNotFoundException());
 		}
 	}
 	
@@ -376,10 +405,10 @@ var env = function(options) {
 			console.log('Main (default): ' + conf.main);
 			console.log('Dev: ' + conf.dev);
 		} else {
-			snooze.fatal('db not defined in snooze.json');
+			snooze.fatal(new DBNotDefinedException());
 		}
 	} else {
-		snooze.fatal('Fatal Error: $conn does not exist. Was snooze-stdlib included in your project?');
+		snooze.fatal(new SequelizeNotFoundException());
 	}
 };
 
@@ -416,7 +445,7 @@ var initDirectories = function(options) {
 var initMain = function(template) {
 	var finish = function(template) {
 		if(!fs.existsSync(__dirname + '/../tpl/main.js.tpl')) {
-			_fatal('Couldn\'t find main.js.tpl');
+			snooze.fatal(new TemplateNotFoundException('main.js.tpl'));
 		} else {
 			var main = fs.readFileSync(__dirname + '/../tpl/main.js.tpl', 'utf8');
 			var compiled = _.template(main, template);
@@ -445,7 +474,7 @@ var initMain = function(template) {
 var initRoutes = function(template) {
 	var finish = function(template) {
 		if(!fs.existsSync(__dirname + '/../tpl/Assets.js.tpl')) {
-			_fatal('Couldn\'t find Assets.js.tpl');
+			snooze.fatal(new TemplateNotFoundException('Assets.js.tpl'));
 		} else {
 			var main = fs.readFileSync(__dirname + '/../tpl/Assets.js.tpl', 'utf8');
 			var compiled = _.template(main, template);
@@ -474,7 +503,7 @@ var initRoutes = function(template) {
 var initJSON = function(template) {
 	var finish = function(template) {
 		if(!fs.existsSync(__dirname + '/../tpl/snooze.json.tpl')) {
-			_fatal('Couldn\'t find snooze.json.tpl');
+			snooze.fatal(new TemplateNotFoundException('snooze.json.tpl'));
 		} else {
 			var main = fs.readFileSync(__dirname + '/../tpl/snooze.json.tpl', 'utf8');
 			var compiled = _.template(main, template);
@@ -500,8 +529,6 @@ var initJSON = function(template) {
 	}
 };
 
-
-
 program
 	.version('0.0.3')
 	.option('-m, --module <module>', 'Set the module');
@@ -511,7 +538,7 @@ program
 	.description('Lists the routes in the snooze application.')
 	.option('-t, --type <type>', 'GET, POST, PUT, DELETE, RESOURCE')
 	.action(function(options) {
-		readConfig();
+		start();
 		printRoutes(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -520,7 +547,7 @@ program
 	.command('controllers')
 	.description('Lists the controllers in the snooze application, their injectables, and routes that point to them.')
 	.action(function(options) {
-		readConfig();
+		start();
 		printControllers(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -529,7 +556,7 @@ program
 	.command('services')
 	.description('Lists the services in the snooze application and their injectables.')
 	.action(function(options) {
-		readConfig();
+		start();
 		printServices(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -538,7 +565,7 @@ program
 	.command('dtos')
 	.description('Lists the dtos in the snooze application, their injectables, and properties.')
 	.action(function(options) {
-		readConfig();
+		start();
 		printDTOs(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -547,7 +574,7 @@ program
 	.command('validators')
 	.description('Lists the validators in the snooze application and their injectables.')
 	.action(function(options) {
-		readConfig();
+		start();
 		printValidators(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -556,7 +583,7 @@ program
 	.command('api')
 	.description('Generates a [module].api.json API File in the api directory.')
 	.action(function(options) {
-		readConfig();
+		start();
 		generateAPI(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -568,7 +595,7 @@ program
 	.option('-f, --force', 'Forces sync. Warning: This drops tables and recreates them.')
 	.option('-e, --env', 'View Available Environments')
 	.action(function(options) {
-		readConfig();
+		start();
 		options = _normalizeOptions(options);
 
 		if(options.sync === true) {
@@ -602,9 +629,36 @@ program
 	});
 
 program
+	.command('start')
+	.description('starts your snooze application')
+	.option('-s', '--silent', 'starts your snooze application silently without load information')
+	.option('-M', '--mode', 'starts your snooze application in a mode. defaults to snooze.json mode. options are `test`, `development`, and `production`.' )
+	.action(function(options) {
+		options = _normalizeOptions(options);
+		
+		snooze = require(process.cwd() + '/node_modules/snooze');
+
+		var startOptions = {
+			silent: false
+		};
+
+		if(options.silent) {
+			startOptions.silent = true;
+		}
+
+		if(!options.mode) {
+			startOptions.mode = snooze.getConfig()
+		}
+
+		start(startOptions);
+	});
+
+program
 	.command('*')
 	.action(function(options) {
-		snooze.fatal('Unknown command');
+		loadSnooze();
+		console.log(options);
+		snooze.fatal(new UnknownCommandException(options));
 	});
 
 program
