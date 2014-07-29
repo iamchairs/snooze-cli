@@ -24,8 +24,15 @@ var loadSnooze = function() {
 	snooze = require(process.cwd() + '/node_modules/snooze');
 };
 
+var initFatal = function() {
+	snooze.onfatal(function(err) {
+		console.error('Snooze Fatal Error:'.red);
+		console.error(err.stack);
+		process.exit(1);
+	});
+};
+
 var start = function(startOptions) {
-	loadSnooze();
 	var config = snooze.getConfig();
 
 	if(config.main !== undefined) {
@@ -529,6 +536,44 @@ var initJSON = function(template) {
 	}
 };
 
+var loadBaseMocks = function() {
+
+};
+
+var runUnitTests = function() {
+	loadSnooze();
+
+	var unitsPath = process.cwd() + '/tests/unit/';
+	var config = snooze.getConfig();
+
+	// TODO: Make this synchronous.
+	//	Dont load 2 unit test files at the same time.
+	//	Dont run 2 unit test files at the same time.
+
+	if(fs.existsSync(unitsPath)) {
+		var tests = fs.readdirSync(unitsPath);
+		_.each(tests, function(test) {
+			require(unitsPath + test);
+			var unitTests = snooze.module(config.name).getUnitTests();
+
+			snooze.module(config.name).EntityManager.compile();
+			snooze.module(config.name).MockEntityManager.compile();
+			
+			_.each(unitTests, function(unitTest) {
+				unitTest.test().then(function() {
+					process.exit(0);
+				});
+			});
+		});
+	} else {
+		throw new NoUnitTestDirectoryFoundException();
+	}
+};
+
+var runIntegrationTests = function() {
+
+};
+
 program
 	.version('0.0.3')
 	.option('-m, --module <module>', 'Set the module');
@@ -636,7 +681,8 @@ program
 	.action(function(options) {
 		options = _normalizeOptions(options);
 		
-		snooze = require(process.cwd() + '/node_modules/snooze');
+		loadSnooze();
+		initFatal();
 
 		var startOptions = {
 			silent: false
@@ -647,17 +693,44 @@ program
 		}
 
 		if(!options.mode) {
-			startOptions.mode = snooze.getConfig()
+			startOptions.mode = snooze.getConfig();
 		}
 
 		start(startOptions);
 	});
 
 program
+	.command('test')
+	.description('run unit and integration tests')
+	.option('-u', '--unit', 'only run unit tests')
+	.option('-i', '--integration', 'only run integration tests')
+	.action(function(options) {
+		options = _normalizeOptions(options);
+		
+		loadSnooze();
+		initFatal();
+
+		var startOptions = {
+			silent: true,
+			mode: 'development'
+		};
+
+		start(startOptions);
+
+		if(options.integration === true && options.unit === undefined) {
+			runIntegrationTests();
+		} else if(options.unit === true && options.integration === undefined) {
+			runUnitTests();
+		} else {
+			runUnitTests();
+			runIntegrationTests();
+		}
+	});
+
+program
 	.command('*')
 	.action(function(options) {
 		loadSnooze();
-		console.log(options);
 		snooze.fatal(new UnknownCommandException(options));
 	});
 

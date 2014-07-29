@@ -1,7 +1,7 @@
 {
   "name": "snooze-cli",
   "description": "Snooze Command Line Interface",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "preferGlobal": true,
   "author": {
     "name": "Micah Williamson",
@@ -25,7 +25,8 @@
     "lodash": "^2.4.1",
     "commander": "^2.2.0",
     "prompt": "^0.2.13",
-    "mysql": "^2.4.1"
+    "mysql": "^2.4.1",
+    "assert": "^1.1.1"
   },
   "keywords": [
     "snooze",
