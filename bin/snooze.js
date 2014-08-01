@@ -366,31 +366,57 @@ var generateAPI = function(options) {
 };
 
 var sync = function(options) {
+	var config = snooze.getConfig();
 	var module = getRealModule(options.module);
 	var $conn = snooze.module(module).getService('$conn');
 	var force = false;
+	var toSync = 0;
+	var synced = 0;
+
+	var tryFinish = function() {
+		if(toSync === synced) {
+			process.exit(0);
+		}
+	}
 
 	var _finish = function() {
 		if($conn !== undefined) {
-			$conn.sync({force: force}).then(function() {
+			$conn.$get().sync({force: force}).then(function(x) {
 				console.log('sync finished');
-				process.exit(0);
+				synced++;
+				tryFinish();
 			}).error(function(err) {
 				console.log('sync err');
 				console.log(err);
-				process.exit(0);
+				synced++;
+				tryFinish();
 			});
 		} else {
 			snooze.fatal(new SequelizeNotFoundException());
 		}
 	}
 	
-	//TODO Add Prompt Here
+	// TODO Add Prompt Here
+
 	if(options.F === true || options.force === true) {
 		force = true;
 	}
 
-	_finish();
+	var connections = config.db.connections;
+	for(var connNm in connections) {
+		var connection = connections[connNm];
+
+		var mode = connection.mode;
+		$conn.connect(mode);
+
+		console.log('synchronizing ' + connNm);
+		toSync++;
+
+		snooze.module(module).EntityManager.compileDAOs();
+		snooze.module(module).EntityManager.associateDAOs();
+
+		_finish();
+	}
 };
 
 var env = function(options) {
@@ -443,7 +469,7 @@ var init = function(options) {
 };
 
 var initDirectories = function(options) {
-	var directories = ['controllers', 'services', 'validators', 'dtos', 'daos', 'routes', 'assets', 'api'];
+	var directories = ['controllers', 'services', 'validators', 'dtos', 'daos', 'routes', 'assets', 'api', 'tests', 'tests/unit', 'tests/unit/mock'];
 	for(var i = 0; i < directories.length; i++) {
 		var directory = directories[i];
 		if(fs.existsSync(process.cwd() + '/' + directory) === false) {
@@ -561,7 +587,8 @@ program
 	.description('Lists the routes in the snooze application.')
 	.option('-t, --type <type>', 'GET, POST, PUT, DELETE, RESOURCE')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		printRoutes(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -570,7 +597,8 @@ program
 	.command('controllers')
 	.description('Lists the controllers in the snooze application, their injectables, and routes that point to them.')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		printControllers(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -579,7 +607,8 @@ program
 	.command('services')
 	.description('Lists the services in the snooze application and their injectables.')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		printServices(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -588,7 +617,8 @@ program
 	.command('dtos')
 	.description('Lists the dtos in the snooze application, their injectables, and properties.')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		printDTOs(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -597,7 +627,8 @@ program
 	.command('validators')
 	.description('Lists the validators in the snooze application and their injectables.')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		printValidators(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -606,7 +637,8 @@ program
 	.command('api')
 	.description('Generates a [module].api.json API File in the api directory.')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		generateAPI(_normalizeOptions(options));
 		process.exit(0);
 	});
@@ -618,7 +650,8 @@ program
 	.option('-f, --force', 'Forces sync. Warning: This drops tables and recreates them.')
 	.option('-e, --env', 'View Available Environments')
 	.action(function(options) {
-		start();
+		loadSnooze();
+		start({silent: true});
 		options = _normalizeOptions(options);
 
 		if(options.sync === true) {
@@ -671,7 +704,7 @@ program
 		}
 
 		if(!options.mode) {
-			startOptions.mode = snooze.getConfig();
+			startOptions.mode = snooze.getConfig().mode;
 		}
 
 		start(startOptions);
@@ -692,6 +725,11 @@ program
 			silent: true,
 			mode: 'development'
 		};
+
+		var config = snooze.getConfig();
+		if(config.unitTesting && config.unitTesting.mode) {
+			startOptions.mode = config.unitTesting.mode;
+		}
 
 		start(startOptions);
 
