@@ -6,6 +6,8 @@ var colors = require('colors');
 var _ = require('lodash');
 var program = require('commander');
 var prompt = require('prompt');
+var UT = require('../lib/SnoozeUnitTester');
+var UnitTester = null;
 
 var _conf = {};
 var _params = {};
@@ -22,6 +24,7 @@ for(var i = 0; i < files.length; i++) {
 
 var loadSnooze = function() {
 	snooze = require(process.cwd() + '/node_modules/snooze');
+	UnitTester = new UT(snooze);
 };
 
 var initFatal = function() {
@@ -536,38 +539,13 @@ var initJSON = function(template) {
 	}
 };
 
-var loadBaseMocks = function() {
-
-};
-
 var runUnitTests = function() {
-	loadSnooze();
-
-	var unitsPath = process.cwd() + '/tests/unit/';
 	var config = snooze.getConfig();
 
-	// TODO: Make this synchronous.
-	//	Dont load 2 unit test files at the same time.
-	//	Dont run 2 unit test files at the same time.
-
-	if(fs.existsSync(unitsPath)) {
-		var tests = fs.readdirSync(unitsPath);
-		_.each(tests, function(test) {
-			require(unitsPath + test);
-			var unitTests = snooze.module(config.name).getUnitTests();
-
-			snooze.module(config.name).EntityManager.compile();
-			snooze.module(config.name).MockEntityManager.compile();
-			
-			_.each(unitTests, function(unitTest) {
-				unitTest.test().then(function() {
-					process.exit(0);
-				});
-			});
-		});
-	} else {
-		throw new NoUnitTestDirectoryFoundException();
-	}
+	UnitTester.setConfig(config);
+	UnitTester.start().then(function() {
+		process.exit(0);
+	});
 };
 
 var runIntegrationTests = function() {
