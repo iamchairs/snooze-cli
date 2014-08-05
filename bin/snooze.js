@@ -30,7 +30,11 @@ var loadSnooze = function() {
 var initFatal = function() {
 	snooze.onfatal(function(err) {
 		console.error('Snooze Fatal Error:'.red);
-		console.error(err.stack);
+		if(err.stack) {
+			console.error(err.stack);
+		} else {
+			console.log(err.name + ': ' + err.message);
+		}
 		process.exit(1);
 	});
 };
@@ -342,6 +346,7 @@ var generateAPI = function(options) {
 	var routes = snooze.module(module).getRoutes();
 	_.each(routes, function(route) {
 		var rt = {
+			description: route.getDescription(),
 			method: route.getMethod(),
 			path: route.getPath(),
 			response: route.getResponse(),
@@ -570,6 +575,12 @@ var runUnitTests = function() {
 
 	UnitTester.setConfig(config);
 	UnitTester.start().then(function() {
+		var _numTests = UnitTester.getNumTests();
+		var _passedTests = UnitTester.getNumPassedTests();
+
+		console.log('');
+		console.log('(' + _passedTests + ' of ' + _numTests + ') tests passed.');
+
 		process.exit(0);
 	});
 };
