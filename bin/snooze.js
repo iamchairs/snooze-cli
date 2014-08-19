@@ -12,6 +12,8 @@ var UnitTester = null;
 var _conf = {};
 var _params = {};
 
+process.setMaxListeners(0);
+
 // Loading exceptions
 
 var files = fs.readdirSync(__dirname + '/../lib/exceptions');
@@ -30,11 +32,18 @@ var loadSnooze = function() {
 var initFatal = function() {
 	snooze.onfatal(function(err) {
 		console.error('Snooze Fatal Error:'.red);
-		if(err.stack) {
-			console.error(err.stack);
+		if(err) {
+			if(err.stack) {
+				console.error(err.stack);
+			} else if(err.name && err.message) {
+				console.error(err.name + ': ' + err.message);
+			} else {
+				console.error(err);
+			}
 		} else {
-			console.log(err.name + ': ' + err.message);
+			console.error(new Error('unkown runtime exception').stack);
 		}
+
 		process.exit(1);
 	});
 };
