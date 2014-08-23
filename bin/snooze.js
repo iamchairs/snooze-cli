@@ -335,6 +335,22 @@ var printDTOs = function(options) {
 	});
 };
 
+var getValidatorErrors = function(module, response, validators) {
+	_.each(validators, function(vd) {
+		if(typeof vd === 'object' && vd.length !== undefined) {
+			getValidatorErrors(module, response, vd)
+		} else if (vd !== undefined && vd !== 'OR') {
+			var validator = snooze.module(module).getValidator(vd);
+			if(validator !== undefined) {
+				var errors = validator.getErrors();
+				for(var code in errors) {
+					response[code] = errors[code];
+				}
+			}
+		}
+	});
+};
+
 var generateAPI = function(options) {
 	var module = getRealModule(options.module);
 
@@ -354,11 +370,16 @@ var generateAPI = function(options) {
 
 	var routes = snooze.module(module).getRoutes();
 	_.each(routes, function(route) {
+		var response = route.getResponse();
+		var validators = route.getValidators();
+
+		getValidatorErrors(module, response, validators);
+
 		var rt = {
 			description: route.getDescription(),
 			method: route.getMethod(),
 			path: route.getPath(),
-			response: route.getResponse(),
+			response: response,
 			request: route.getRequest()
 		};
 
