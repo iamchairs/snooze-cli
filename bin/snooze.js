@@ -504,7 +504,7 @@ var init = function(options) {
 };
 
 var initDirectories = function(options) {
-	var directories = ['controllers', 'services', 'validators', 'dtos', 'daos', 'routes', 'assets', 'api', 'tests', 'tests/unit', 'tests/unit/mock'];
+	var directories = ['controllers', 'services', 'validators', 'dtos', 'daos', 'routes', 'assets', 'api', 'tests', 'tests/unit', 'tests/unit/mock', 'ssl'];
 	for(var i = 0; i < directories.length; i++) {
 		var directory = directories[i];
 		if(fs.existsSync(process.cwd() + '/' + directory) === false) {
@@ -544,12 +544,41 @@ var initMain = function(template) {
 
 var initRoutes = function(template) {
 	var finish = function(template) {
-		if(!fs.existsSync(__dirname + '/../tpl/Assets.js.tpl')) {
-			snooze.fatal(new TemplateNotFoundException('Assets.js.tpl'));
-		} else {
-			var main = fs.readFileSync(__dirname + '/../tpl/Assets.js.tpl', 'utf8');
-			var compiled = _.template(main, template);
-			fs.writeFileSync(process.cwd() + '/routes/Assets.js', compiled);
+		var templates = {
+			'Assets.js.tpl': {
+				src: '/../tpl/Assets.js.tpl',
+				dst: '/routes/Assets.js'
+			},
+			'TestCtrl.js.tpl': {
+				src: '/../tpl/TestCtrl.js.tpl',
+				dst: '/controllers/TestCtrl.js'
+			},
+			'Test.js.tpl': {
+				src: '/../tpl/Test.js.tpl',
+				dst: '/services/Test.js'
+			},
+			'TestDTO.js.tpl': {
+				src: '/../tpl/TestDTO.js.tpl',
+				dst: '/dtos/TestDTO.js'
+			},
+			'TestRoute.js.tpl': {
+				src: '/../tpl/TestRoute.js.tpl',
+				dst: '/routes/TestRoute.js'	
+			}
+		};
+
+		for(var file in templates) {
+			var templ = templates[file];
+			var src = templ.src;
+			var dst = templ.dst;
+
+			if(!fs.existsSync(__dirname + src)) {
+				snooze.fatal(new TemplateNotFoundException(file));
+			} else {
+				var main = fs.readFileSync(__dirname + src, 'utf8');
+				var compiled = _.template(main, template);
+				fs.writeFileSync(process.cwd() + dst, compiled);
+			}
 		}
 	};
 
