@@ -69,7 +69,7 @@ var start = function(startOptions) {
 				}
 			}
 		
-			if(snooze.module(config.name).isAwake()) {
+			if(snooze.module(config.name).isAwake) {
 				snooze.fatal(new StartConflictException());
 			} else {
 				snooze.module(config.name).wakeup(startOptions);
