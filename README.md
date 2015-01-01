@@ -1,16 +1,11 @@
-snooze-cli
-==========
+# snooze-cli 1.0.0-alpha.1
 
 Snooze Command Line Interface
 
-Moved from the snooze package. Install globally like-
+**Inoperable at the moment. Stay tuned for updates.**
 
-```
-npm install snooze-cli -g
-```
+Instead use.
 
-If you have snooze-cli from the snooze package you may need to remove it first
+	node main.js
 
-```
-rm -f /usr/local/bin/snooze
-```
+To start your snooze application. Remember to add the `module.wakeup()` method to your main.js

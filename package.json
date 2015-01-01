@@ -20,15 +20,7 @@
     "url": "https://github.com/iamchairs/snooze-cli/issues"
   },
   "homepage": "http://snoozejs.org/",
-  "dependencies": {
-    "colors": "^0.6.2",
-    "lodash": "^2.4.1",
-    "commander": "^2.2.0",
-    "prompt": "^0.2.13",
-    "mysql": "^2.4.1",
-    "assert": "^1.1.1",
-    "q": "^1.0.1"
-  },
+  "dependencies": {},
   "keywords": [
     "snooze",
     "snooze-cli",
